@@ -486,6 +486,7 @@ async function renderQuiz() {
       const sw = Math.min(page.width - sx, region.w + pad * 2);
       const sh = Math.min(page.height - sy, region.h + pad * 2);
       ctx.drawImage(origImg, sx, sy, sw, sh, sx, sy, sw, sh);
+      enhanceOrangeRegion(ctx, sx, sy, sw, sh);
       if (sessionResults[key]) {
         drawResultMark(ctx, region, sessionResults[key]);
       }
@@ -543,6 +544,24 @@ function updateControlVisibility() {
   }
 }
 
+// オレンジ文字の視認性を上げる（薄いスキャンでも読みやすくする）
+function enhanceOrangeRegion(ctx, sx, sy, sw, sh) {
+  const imageData = ctx.getImageData(sx, sy, sw, sh);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2];
+    // オレンジ系ピクセルを検出（緩めの条件）
+    if (r > g && g > b && (r - b) > 15) {
+      // 彩度と明度を強調：オレンジを濃くする
+      const boost = 1.6;
+      d[i]   = Math.min(255, Math.round(r * boost - (g + b) * 0.15));  // R up
+      d[i+1] = Math.min(255, Math.round(g * 0.6));                      // G down
+      d[i+2] = Math.min(255, Math.round(b * 0.4));                      // B down
+    }
+  }
+  ctx.putImageData(imageData, sx, sy);
+}
+
 async function revealAnswer() {
   const page = activePages[currentPageIndex];
   const region = page.regions[currentRegionIndex];
@@ -556,6 +575,7 @@ async function revealAnswer() {
   const sw = Math.min(page.width - sx, region.w + pad * 2);
   const sh = Math.min(page.height - sy, region.h + pad * 2);
   ctx.drawImage(origImg, sx, sy, sw, sh, sx, sy, sw, sh);
+  enhanceOrangeRegion(ctx, sx, sy, sw, sh);
 
   ctx.strokeStyle = "#e8a040";
   ctx.lineWidth = 3;
