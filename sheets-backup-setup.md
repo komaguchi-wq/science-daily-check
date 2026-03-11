@@ -1,8 +1,8 @@
-# Google Sheets バックアップ設定手順
+# Google Sheets バックアップ設定手順（理科デイリーチェック）
 
 ## 1. Google Sheets を作成
 
-新しいスプレッドシートを作成し、シート名を「Backup」にする。
+新しいスプレッドシートを作成する（名前は「理科DC バックアップ」など）。
 
 ## 2. Apps Script を設定
 
@@ -55,6 +55,44 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 }
+
+function doGet(e) {
+  try {
+    const user = e.parameter.user;
+    if (!user) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "error", message: "user parameter required" })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(user);
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return ContentService.createTextOutput(
+        JSON.stringify({ status: "ok", data: {} })
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
+    const data = {};
+    for (const row of rows) {
+      const unitId = row[1];
+      const key = row[2];
+      const attempts = row[3];
+      const correct = row[4];
+      if (!data[unitId]) data[unitId] = {};
+      data[unitId][key] = { attempts, correct };
+    }
+
+    return ContentService.createTextOutput(
+      JSON.stringify({ status: "ok", data })
+    ).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ status: "error", message: err.toString() })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+}
 ```
 
 ## 3. ウェブアプリとしてデプロイ
@@ -67,13 +105,7 @@ function doPost(e) {
 
 ## 4. アプリに URL を設定
 
-ブラウザのコンソールで以下を実行:
-
-```javascript
-localStorage.setItem("sheets-api-url", "ここにデプロイURLを貼る");
-```
-
-または、app.js の `SHEETS_API_URL` を直接書き換える。
+アプリの⚙️ボタンから設定画面を開き、デプロイURLを貼り付けて「保存」。
 
 ## データ構造
 
