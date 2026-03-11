@@ -16,7 +16,7 @@ let imageCache = {};
 let currentMode = "all";      // 現在の学習モード
 
 // Google Sheets バックアップ用
-let SHEETS_API_URL = localStorage.getItem("science-sheets-api-url") || "";
+let SHEETS_API_URL = localStorage.getItem("science-sheets-api-url") || "https://script.google.com/macros/s/AKfycbweFq1pZqwn_-zXyeNfXM6S-lsSylpsOtjzra79eEHVFp7gEGHb__5wVl2QYoIAyOYWHg/exec";
 
 // --- トラッキングデータ ---
 // LocalStorage: `tracking-${user}` -> { "630-01": { "5-0": { attempts: 3, correct: 2 }, ... } }
