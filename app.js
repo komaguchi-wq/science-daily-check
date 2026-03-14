@@ -86,6 +86,38 @@ async function backupToSheets() {
   }
 }
 
+// --- Google Sheets 自動同期（起動時） ---
+async function autoSyncFromSheets() {
+  if (!SHEETS_API_URL || !currentUser) return;
+  const url = SHEETS_API_URL + "?user=" + encodeURIComponent(currentUser);
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.status !== "ok" || !json.data || Object.keys(json.data).length === 0) return;
+    const local = getTracking();
+    let changed = false;
+    for (const unitId in json.data) {
+      if (!local[unitId]) local[unitId] = {};
+      for (const key in json.data[unitId]) {
+        const remote = json.data[unitId][key];
+        const existing = local[unitId][key];
+        if (!existing || remote.attempts > existing.attempts) {
+          local[unitId][key] = remote;
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      setTracking(local);
+      // UI更新（単元一覧が表示中なら再描画）
+      if (unitsList.length > 0) renderUnits();
+      console.log("autoSyncFromSheets: merged remote data");
+    }
+  } catch (e) {
+    console.warn("autoSyncFromSheets failed:", e);
+  }
+}
+
 // --- Google Sheets 復元 ---
 async function restoreFromSheets() {
   if (!SHEETS_API_URL) {
@@ -152,6 +184,7 @@ function selectUser(user) {
   sessionStorage.setItem("current-user", user);
   document.getElementById("header-user-name").textContent = user;
   loadUnits();
+  autoSyncFromSheets();
 }
 
 // ==============================
