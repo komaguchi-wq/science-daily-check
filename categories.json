@@ -1,0 +1,14 @@
+[
+  {
+    "id": "daily-check",
+    "name": "理科デイリーチェック",
+    "icon": "📝",
+    "description": "デイリーチェックの問題"
+  },
+  {
+    "id": "weekly-sapix",
+    "name": "Weekly SapiX",
+    "icon": "📘",
+    "description": "Weekly SapiXの問題"
+  }
+]

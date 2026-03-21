@@ -19,13 +19,22 @@
     </div>
   </div>
 
-  <!-- 単元一覧画面 -->
-  <div id="screen-units" class="screen">
+  <!-- カテゴリ一覧画面 -->
+  <div id="screen-categories" class="screen">
     <header class="header">
       <button class="btn-icon" id="btn-switch-user">👤</button>
       <h1 class="header-title">理科デイリーチェック</h1>
       <span class="header-user" id="header-user-name"></span>
       <button class="btn-icon" id="btn-settings" style="font-size:18px;">⚙️</button>
+    </header>
+    <div class="unit-list" id="category-list"></div>
+  </div>
+
+  <!-- 単元一覧画面 -->
+  <div id="screen-units" class="screen">
+    <header class="header">
+      <button class="btn-icon" id="btn-back-categories">←</button>
+      <h1 class="header-title" id="units-header-title">単元一覧</h1>
     </header>
     <div class="unit-list" id="unit-list"></div>
   </div>

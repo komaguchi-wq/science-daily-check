@@ -2,26 +2,36 @@
   {
     "id": "630-01",
     "title": "気体と水溶液の性質",
-    "subject": "理科"
+    "subject": "理科",
+    "pageCount": 16,
+    "totalRegions": 383
   },
   {
     "id": "630-02",
     "title": "燃焼のはたらき（1）～発生と燃焼～",
-    "subject": "理科"
+    "subject": "理科",
+    "pageCount": 15,
+    "totalRegions": 374
   },
   {
     "id": "630-03",
     "title": "燃焼のはたらき（2）～光合成と呼吸～",
-    "subject": "理科"
+    "subject": "理科",
+    "pageCount": 15,
+    "totalRegions": 434
   },
   {
     "id": "630-04",
     "title": "光①",
-    "subject": "理科"
+    "subject": "理科",
+    "pageCount": 15,
+    "totalRegions": 314
   },
   {
     "id": "630-05",
     "title": "光②",
-    "subject": "理科"
+    "subject": "理科",
+    "pageCount": 15,
+    "totalRegions": 323
   }
 ]

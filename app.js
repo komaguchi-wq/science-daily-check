@@ -4,7 +4,9 @@
 
 // --- 状態管理 ---
 let currentUser = null;       // "さと" | "ぱぱ"
-let unitsList = [];           // units.json の中身
+let categoriesList = [];      // categories.json の中身
+let currentCategory = null;   // 選択中のカテゴリ { id, name, icon, description }
+let unitsList = [];           // カテゴリ内の units.json の中身
 let currentUnit = null;       // 選択中の単元 { id, title, subject }
 let quizData = null;          // 単元の quiz-data.json
 let activePages = [];         // フィルタ後のページリスト
@@ -110,7 +112,7 @@ async function autoSyncFromSheets() {
     if (changed) {
       setTracking(local);
       // UI更新（単元一覧が表示中なら再描画）
-      if (unitsList.length > 0) renderUnits();
+      if (unitsList.length > 0 && currentCategory) renderUnits();
       console.log("autoSyncFromSheets: merged remote data");
     }
   } catch (e) {
@@ -166,8 +168,8 @@ function saveSettings() {
 }
 
 function closeSettings() {
-  renderUnits();
-  showScreen("screen-units");
+  renderCategories();
+  showScreen("screen-categories");
 }
 
 // --- 画面切り替え ---
@@ -183,19 +185,50 @@ function selectUser(user) {
   currentUser = user;
   sessionStorage.setItem("current-user", user);
   document.getElementById("header-user-name").textContent = user;
-  loadUnits();
+  loadCategories();
   autoSyncFromSheets();
+}
+
+// ==============================
+// カテゴリ一覧
+// ==============================
+async function loadCategories() {
+  const res = await fetch("categories.json");
+  categoriesList = await res.json();
+  renderCategories();
+  showScreen("screen-categories");
+}
+
+function renderCategories() {
+  const list = document.getElementById("category-list");
+  list.innerHTML = "";
+
+  categoriesList.forEach(cat => {
+    const card = document.createElement("div");
+    card.className = "unit-card";
+    card.innerHTML = `
+      <div class="unit-card-info">
+        <div class="unit-card-title">${cat.icon} ${cat.name}</div>
+        <div class="unit-card-subtitle">${cat.description}</div>
+      </div>
+    `;
+    card.addEventListener("click", () => openCategory(cat));
+    list.appendChild(card);
+  });
+}
+
+async function openCategory(cat) {
+  currentCategory = cat;
+  document.getElementById("units-header-title").textContent = cat.name;
+  const res = await fetch(`categories/${cat.id}/units.json`);
+  unitsList = await res.json();
+  renderUnits();
+  showScreen("screen-units");
 }
 
 // ==============================
 // 単元一覧
 // ==============================
-async function loadUnits() {
-  const res = await fetch("units.json");
-  unitsList = await res.json();
-  renderUnits();
-  showScreen("screen-units");
-}
 
 function renderUnits() {
   const list = document.getElementById("unit-list");
@@ -234,7 +267,7 @@ async function openUnit(unit) {
   document.getElementById("unit-detail-title").textContent =
     `${unit.id} ${unit.title}`;
 
-  const res = await fetch(`units/${unit.id}/quiz-data.json`);
+  const res = await fetch(`categories/${currentCategory.id}/units/${unit.id}/quiz-data.json`);
   quizData = await res.json();
 
   renderUnitDetail();
@@ -275,7 +308,7 @@ function renderUnitDetail() {
 
     card.innerHTML = `
       <div class="page-card-thumb">
-        <img src="units/${currentUnit.id}/images/${page.mask}" loading="lazy" alt="${pageLabel}">
+        <img src="categories/${currentCategory.id}/units/${currentUnit.id}/images/${page.mask}" loading="lazy" alt="${pageLabel}">
       </div>
       <div class="page-card-title">${pageLabel}</div>
       <div class="page-card-info">${regionCount}問</div>
@@ -370,6 +403,11 @@ function updateModeButtons() {
 }
 
 function getPageLabel(page) {
+  // WS単元: シンプルなページ番号
+  if (currentCategory && currentCategory.id === "weekly-sapix") {
+    return `ページ ${page.id}`;
+  }
+  // デイリーチェック (630-XX): 従来のラベル
   const p = page.page;
   const h = page.half;
   if (p === 1) return h === "bottom" ? "表紙" : "確認問題";
@@ -488,8 +526,8 @@ async function renderQuiz() {
     targetCount > 0 ? `${(answeredCount / targetCount) * 100}%` : "0%";
 
   // 画像
-  const origImg = await loadImage(`units/${currentUnit.id}/images/${page.orig}`);
-  const maskImg = await loadImage(`units/${currentUnit.id}/images/${page.mask}`);
+  const origImg = await loadImage(`categories/${currentCategory.id}/units/${currentUnit.id}/images/${page.orig}`);
+  const maskImg = await loadImage(`categories/${currentCategory.id}/units/${currentUnit.id}/images/${page.mask}`);
 
   // キャンバスサイズ
   const wrapper = document.getElementById("canvas-wrapper");
@@ -600,7 +638,7 @@ async function revealAnswer() {
   const region = page.regions[currentRegionIndex];
   const canvas = document.getElementById("quiz-canvas");
   const ctx = canvas.getContext("2d");
-  const origImg = await loadImage(`units/${currentUnit.id}/images/${page.orig}`);
+  const origImg = await loadImage(`categories/${currentCategory.id}/units/${currentUnit.id}/images/${page.orig}`);
 
   const pad = 4;
   const sx = Math.max(0, region.x - pad);
@@ -717,6 +755,12 @@ function setupEventListeners() {
   document.getElementById("btn-save-settings").addEventListener("click", saveSettings);
   document.getElementById("btn-restore").addEventListener("click", restoreFromSheets);
   document.getElementById("btn-close-settings").addEventListener("click", closeSettings);
+
+  // カテゴリ一覧 → 戻る
+  document.getElementById("btn-back-categories").addEventListener("click", () => {
+    renderCategories();
+    showScreen("screen-categories");
+  });
 
   // 単元詳細 → 戻る
   document.getElementById("btn-back-units").addEventListener("click", () => {
