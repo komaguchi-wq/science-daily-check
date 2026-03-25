@@ -381,15 +381,15 @@ body {
 /* キャンバスエリア */
 .canvas-wrapper {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
   background: #e8e8ed;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  touch-action: none;
+  text-align: center;
   padding: 4px;
 }
 
 #quiz-canvas {
+  display: inline-block;
   background: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);

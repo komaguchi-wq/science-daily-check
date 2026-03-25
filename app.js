@@ -856,3 +856,113 @@ function init() {
 }
 
 init();
+
+// Pinch-zoom for canvas-wrapper only (resize-based)
+(function() {
+    const wrapper = document.getElementById('canvas-wrapper');
+    const cvs = document.getElementById('quiz-canvas');
+    let scale = 1, minScale = 1, maxScale = 4;
+    let startDist = 0, startScale = 1;
+    let isPinching = false;
+    let baseWidth = 0;
+    let panStartX = 0, panStartY = 0;
+    let panScrollL = 0, panScrollT = 0;
+    let isPanning = false;
+
+    function getBaseWidth() {
+        if (scale === 1) baseWidth = cvs.getBoundingClientRect().width;
+        return baseWidth;
+    }
+
+    function applyZoom(midXClient, midYClient) {
+        const bw = getBaseWidth() || wrapper.clientWidth;
+        const newW = bw * scale;
+        const prevScrollLeft = wrapper.scrollLeft;
+        const prevScrollTop = wrapper.scrollTop;
+        const canvasX = prevScrollLeft + midXClient - wrapper.getBoundingClientRect().left;
+        const canvasY = prevScrollTop + midYClient - wrapper.getBoundingClientRect().top;
+        const ratioX = canvasX / (cvs.offsetWidth || 1);
+        const ratioY = canvasY / (cvs.offsetHeight || 1);
+        cvs.style.width = newW + 'px';
+        cvs.style.maxWidth = 'none';
+        cvs.style.maxHeight = 'none';
+        cvs.style.height = 'auto';
+        const newCanvasX = ratioX * cvs.offsetWidth;
+        const newCanvasY = ratioY * cvs.offsetHeight;
+        wrapper.scrollLeft = newCanvasX - (midXClient - wrapper.getBoundingClientRect().left);
+        wrapper.scrollTop = newCanvasY - (midYClient - wrapper.getBoundingClientRect().top);
+    }
+
+    function resetZoom() {
+        scale = 1;
+        cvs.style.width = '';
+        cvs.style.maxWidth = '';
+        cvs.style.maxHeight = '';
+        cvs.style.height = '';
+    }
+
+    function getDist(t1, t2) {
+        const dx = t1.clientX - t2.clientX;
+        const dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    wrapper.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+            isPinching = true;
+            isPanning = false;
+            startDist = getDist(e.touches[0], e.touches[1]);
+            startScale = scale;
+            if (scale === 1) getBaseWidth();
+        } else if (e.touches.length === 1) {
+            isPanning = true;
+            panStartX = e.touches[0].clientX;
+            panStartY = e.touches[0].clientY;
+            panScrollL = wrapper.scrollLeft;
+            panScrollT = wrapper.scrollTop;
+        }
+    }, { passive: true });
+
+    wrapper.addEventListener('touchmove', function(e) {
+        if (isPinching && e.touches.length === 2) {
+            e.preventDefault();
+            const dist = getDist(e.touches[0], e.touches[1]);
+            scale = Math.min(maxScale, Math.max(minScale, startScale * (dist / startDist)));
+            const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            applyZoom(midX, midY);
+        } else if (isPanning && e.touches.length === 1) {
+            e.preventDefault();
+            const dx = panStartX - e.touches[0].clientX;
+            const dy = panStartY - e.touches[0].clientY;
+            wrapper.scrollLeft = panScrollL + dx;
+            wrapper.scrollTop = panScrollT + dy;
+        }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchend', function(e) {
+        if (isPinching && e.touches.length < 2) {
+            isPinching = false;
+            if (scale <= 1.05) resetZoom();
+        }
+        if (e.touches.length === 0) isPanning = false;
+    }, { passive: true });
+
+    // Double-tap to reset zoom
+    let lastTap = 0;
+    wrapper.addEventListener('touchend', function(e) {
+        if (e.touches.length > 0) return;
+        const now = Date.now();
+        if (now - lastTap < 300 && scale > 1) {
+            resetZoom();
+            wrapper.scrollTop = 0;
+        }
+        lastTap = now;
+    }, { passive: true });
+
+    // Reset zoom on page change - observe renderQuiz calls via MutationObserver
+    const observer = new MutationObserver(() => { if (scale > 1) resetZoom(); });
+    observer.observe(cvs, { attributes: true, attributeFilter: ['width', 'height'] });
+
+    window._canvasZoomScale = () => scale;
+})();
